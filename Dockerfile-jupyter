@@ -59,13 +59,13 @@ gawk \
 libopenmpi-dev \
 && rm -rf /var/lib/apt/lists/*
 
-ENV INSTALL_DIR=/container
+ENV INSTALL_DIR=container
 
 ENV TARGET=x86_64
 #ENV TARGET=aarch64
 
 # image run hook: the -l will make sure /etc/profile environments are loaded
-CMD        /bin/bash -l
+CMD /bin/bash -l
 
 # SSH .ssh dir
 RUN mkdir root/.ssh
@@ -79,9 +79,59 @@ RUN if [ ! -d /var/run/sshd ]; then \
    chmod 0755 /var/run/sshd; \
    fi
 
-ENV MOFEM_SRC_DIR=$MOFEM_INSTALL_DIR/mofem-cephas
-ENV MOFEM_UM_SRC_DIR=$MOFEM_SRC_DIR/mofem/users_modules
-
-
 EXPOSE 22
 CMD ["/usr/sbin/sshd", "-D"]
+
+RUN apt-get update && \
+  apt-get install -y \
+  python3-pip \
+  libgl1-mesa-glx \
+  libglu1-mesa \
+  xvfb \
+  build-essential \
+  python3-dev \
+  npm \
+  nodejs \
+  libnode64 \
+  && apt-get clean && rm -rf /var/lib/apt/lists/*  
+
+RUN ln -s `which pip3.8` /usr/bin/pip3.8
+
+RUN pip3 -q install pip --upgrade && \
+  pip3 install notebook 
+
+RUN pip3 install \
+  pandas \
+  scipy \
+  gmsh \
+  jupytext \
+  pyvista \
+  pyvirtualdisplay \
+  ipyvtklink \
+  jupyter_contrib_nbextensions \
+  itkwidgets \
+  ipywidgets==7.7 \
+  pythreejs \
+  ipyvtk-simple \
+  panel \
+  jupyter-server \
+  jupyter \
+  jupyterhub-firstuseauthenticator && \
+  jupyter contrib nbextension install --sys-prefix && \
+  jupyter nbextension install --py jupytext --sys-prefix && \
+  jupyter nbextension enable --py jupytext && \
+  jupyter nbextension install --py pythreejs --sys-prefix && \
+  jupyter nbextension enable --py pythreejs && \
+  npm install -g configurable-http-proxy
+
+# allow jupyterlab for ipyvtk
+ENV DISPLAY=:99.0
+ENV JUPYTER_ENABLE_LAB=yes
+ENV PYVISTA_USE_IPYVTK=true
+ENV JUPYTER_TOKEN=mofem
+ENV PYTHONPATH=$PYTHONPATH:/usr/local/lib/python3.8/site-packages/gmsh-4.8.3-Linux64-sdk/lib
+
+WORKDIR $INSTALL_DIR
+
+EXPOSE 8888
+CMD /bin/bash -c "jupyter notebook --port=8888 --no-browser --ip=0.0.0.0 --allow-root"
