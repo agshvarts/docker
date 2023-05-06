@@ -64,9 +64,6 @@ ENV INSTALL_DIR=container
 ENV TARGET=x86_64
 #ENV TARGET=aarch64
 
-# image run hook: the -l will make sure /etc/profile environments are loaded
-CMD /bin/bash -l
-
 # SSH .ssh dir
 RUN mkdir root/.ssh
 
@@ -78,9 +75,6 @@ RUN if [ ! -d /var/run/sshd ]; then \
    mkdir /var/run/sshd; \
    chmod 0755 /var/run/sshd; \
    fi
-
-EXPOSE 22
-CMD ["/usr/sbin/sshd", "-D"]
 
 RUN apt-get update && \
   apt-get install -y \
@@ -131,7 +125,28 @@ ENV PYVISTA_USE_IPYVTK=true
 ENV JUPYTER_TOKEN=mofem
 ENV PYTHONPATH=$PYTHONPATH:/usr/local/lib/python3.8/site-packages/gmsh-4.8.3-Linux64-sdk/lib
 
+ENV JUPYTER_HOME_DIR=$INSTALL_DIR/jupyter
+
+ENV ENV_FILE=/etc/profile.d/jupyterhub.sh
+
+ADD . $JUPYTER_HOME_DIR
+
+# Install packages
+RUN apt-get update && \
+  apt-get install -y \
+  sudo && \
+  rm -rf /var/lib/apt/lists/*
+
+RUN useradd mofem \
+  -m -d /$INSTALL_DIR/jupyter/mofem \
+  -k /$INSTALL_DIR/jupyter/skel/ \
+  -p paN8aiEIonqJE && \
+  usermod -aG sudo mofem
+
+# Copy static styles for JupyterHub
+RUN cp /$INSTALL_DIR/jupyter/css/* /usr/local/share/jupyterhub/static/css
+
 WORKDIR $INSTALL_DIR
 
-EXPOSE 8888
-CMD /bin/bash -c "jupyter notebook --port=8888 --no-browser --ip=0.0.0.0 --allow-root"
+EXPOSE 8000
+CMD ["/bin/bash", "-c", ". ${MOFEM_ENV_FILE}; jupyterhub -f ${MOFEM_JUPYTER_HOME_DIR}/jupyterhub_config.py"]
