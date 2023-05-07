@@ -1,16 +1,16 @@
-FROM       ubuntu:focal
+FROM ubuntu:focal
 
 LABEL maintainer="Andrei.Shvarts@glasgow.ac.uk"
 
 # general environment for docker
-ENV        DEBIAN_FRONTEND=noninteractive \
-           SPACK_ROOT=/usr/local \
-           FORCE_UNSAFE_CONFIGURE=1
+ENV DEBIAN_FRONTEND=noninteractive \
+    SPACK_ROOT=/usr/local \
+    FORCE_UNSAFE_CONFIGURE=1
 
 # timezone env with default
 ENV TZ Europe/London
 
-# Confif apt-get
+# Config apt-get
 RUN echo 'APT::Install-Recommends "0";' > /etc/apt/apt.conf.d/99local
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -59,22 +59,23 @@ gawk \
 libopenmpi-dev \
 && rm -rf /var/lib/apt/lists/*
 
-ENV INSTALL_DIR=container
+ENV INSTALL_DIR=/container
 
 ENV TARGET=x86_64
-#ENV TARGET=aarch64
 
 # SSH .ssh dir
 RUN mkdir root/.ssh
-
-# Allow to trace child procsses needed for debuging
-RUN sed  -i 's/kernel.yama.ptrace_scope = 1/kernel.yama.ptrace_scope = 0/' /etc/sysctl.d/10-ptrace.conf
 
 # Create the PrivSep empty dir if necessary
 RUN if [ ! -d /var/run/sshd ]; then \
    mkdir /var/run/sshd; \
    chmod 0755 /var/run/sshd; \
    fi
+
+# Allow to trace child procsses needed for debuging
+RUN sed  -i 's/kernel.yama.ptrace_scope = 1/kernel.yama.ptrace_scope = 0/' /etc/sysctl.d/10-ptrace.conf
+
+# EXPOSE 22
 
 RUN apt-get update && \
   apt-get install -y \
@@ -110,6 +111,7 @@ RUN pip3 install \
   panel \
   jupyter-server \
   jupyter \
+  'jupyterhub==3.1.1' \
   jupyterhub-firstuseauthenticator && \
   jupyter contrib nbextension install --sys-prefix && \
   jupyter nbextension install --py jupytext --sys-prefix && \
@@ -120,33 +122,22 @@ RUN pip3 install \
 
 # allow jupyterlab for ipyvtk
 ENV DISPLAY=:99.0
-ENV JUPYTER_ENABLE_LAB=yes
 ENV PYVISTA_USE_IPYVTK=true
-ENV JUPYTER_TOKEN=mofem
 ENV PYTHONPATH=$PYTHONPATH:/usr/local/lib/python3.8/site-packages/gmsh-4.8.3-Linux64-sdk/lib
+ENV JUPYTER_HOME_DIR=$INSTALL_DIR/jupyterhub
 
-ENV JUPYTER_HOME_DIR=$INSTALL_DIR/jupyter
+ADD jupyterhub $JUPYTER_HOME_DIR
 
-ENV ENV_FILE=/etc/profile.d/jupyterhub.sh
-
-ADD . $JUPYTER_HOME_DIR
-
-# Install packages
-RUN apt-get update && \
-  apt-get install -y \
-  sudo && \
-  rm -rf /var/lib/apt/lists/*
-
-RUN useradd mofem \
-  -m -d /$INSTALL_DIR/jupyter/mofem \
-  -k /$INSTALL_DIR/jupyter/skel/ \
+RUN useradd admin \
+  -m -d $JUPYTER_HOME_DIR/admin \
+  -k $JUPYTER_HOME_DIR/skel/ \
   -p paN8aiEIonqJE && \
-  usermod -aG sudo mofem
+  usermod -aG sudo admin
 
 # Copy static styles for JupyterHub
-RUN cp /$INSTALL_DIR/jupyter/css/* /usr/local/share/jupyterhub/static/css
+RUN cp $JUPYTER_HOME_DIR/css/* /usr/local/share/jupyterhub/static/css
 
 WORKDIR $INSTALL_DIR
 
 EXPOSE 8000
-CMD ["/bin/bash", "-c", ". ${MOFEM_ENV_FILE}; jupyterhub -f ${MOFEM_JUPYTER_HOME_DIR}/jupyterhub_config.py"]
+CMD ["/bin/bash", "-c", "jupyterhub -f ${JUPYTER_HOME_DIR}/jupyterhub_config.py"]

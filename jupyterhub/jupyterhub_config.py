@@ -79,8 +79,8 @@ c.Authenticator.admin_users = {'admin'}
 c.FirstUseAuthenticator.add_user_cmd = [
   'useradd',
   '-m',
-  '-d', '/container/jupyter/USERNAME',
-  '-k', '/container/jupyter/skel/',
+  '-d', '/container/jupyterhub/USERNAME',
+  '-k', '/container/jupyterhub/skel/',
   '-p', 'paN8aiEIonqJE']
 c.FirstUseAuthenticator.create_system_users = True
 c.FirstUseAuthenticator.create_users = False
@@ -649,7 +649,7 @@ c.JupyterHub.concurrent_spawn_limit = 100
 
 ## Paths to search for jinja templates, before using the default templates.
 #  Default: []
-c.JupyterHub.template_paths = ['/container/jupyter/templates']
+c.JupyterHub.template_paths = ['/container/jupyterhub/templates']
 
 ## Extra variables to be passed into jinja templates
 #  Default: {}
