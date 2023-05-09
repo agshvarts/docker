@@ -18,6 +18,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install packages
 RUN apt-get update && \
 apt-get install -y \
+vim \
 file \
 zlib1g-dev \
 openssh-server \
@@ -66,16 +67,16 @@ ENV TARGET=x86_64
 # SSH .ssh dir
 RUN mkdir root/.ssh
 
+# Allow to trace child procsses needed for debuging
+RUN sed  -i 's/kernel.yama.ptrace_scope = 1/kernel.yama.ptrace_scope = 0/' /etc/sysctl.d/10-ptrace.conf
+
 # Create the PrivSep empty dir if necessary
 RUN if [ ! -d /var/run/sshd ]; then \
    mkdir /var/run/sshd; \
    chmod 0755 /var/run/sshd; \
    fi
 
-# Allow to trace child procsses needed for debuging
-RUN sed  -i 's/kernel.yama.ptrace_scope = 1/kernel.yama.ptrace_scope = 0/' /etc/sysctl.d/10-ptrace.conf
-
-# EXPOSE 22
+EXPOSE 22
 
 RUN apt-get update && \
   apt-get install -y \
@@ -128,6 +129,8 @@ ENV JUPYTER_HOME_DIR=$INSTALL_DIR/jupyterhub
 
 ADD jupyterhub $JUPYTER_HOME_DIR
 
+WORKDIR $INSTALL_DIR
+
 RUN useradd admin \
   -m -d $JUPYTER_HOME_DIR/admin \
   -k $JUPYTER_HOME_DIR/skel/ \
@@ -136,8 +139,6 @@ RUN useradd admin \
 
 # Copy static styles for JupyterHub
 RUN cp $JUPYTER_HOME_DIR/css/* /usr/local/share/jupyterhub/static/css
-
-WORKDIR $INSTALL_DIR
 
 EXPOSE 8000
 CMD ["/bin/bash", "-c", "jupyterhub -f ${JUPYTER_HOME_DIR}/jupyterhub_config.py"]
