@@ -93,33 +93,69 @@ RUN apt-get update && \
 
 RUN ln -s `which pip3.8` /usr/bin/pip3.8
 
+# RUN pip3 -q install pip --upgrade && \
+#   pip3 install notebook 
+
+# RUN pip3 install \
+#   pandas \
+#   scipy \
+#   gmsh \
+#   jupytext \
+#   pyvista \
+#   pyvirtualdisplay \
+#   ipyvtklink \
+#   jupyter_contrib_nbextensions \
+#   itkwidgets \
+#   ipywidgets==7.7 \
+#   pythreejs \
+#   ipyvtk-simple \
+#   panel \
+#   jupyter-server \
+#   jupyter \
+#   'jupyterhub==3.1.1' \
+#   jupyterhub-firstuseauthenticator && \
+#   jupyter contrib nbextension install --sys-prefix && \
+#   jupyter nbextension install --py jupytext --sys-prefix && \
+#   jupyter nbextension enable --py jupytext && \
+#   jupyter nbextension install --py pythreejs --sys-prefix && \
+#   jupyter nbextension enable --py pythreejs && \
+#   npm install -g configurable-http-proxy
+
 RUN pip3 -q install pip --upgrade && \
-  pip3 install notebook 
+  pip3 install \
+  notebook==6.4.12 \
+  jupyterhub==3.1.1 \
+  jupyterhub-firstuseauthenticator && \
+  npm install -g configurable-http-proxy
 
 RUN pip3 install \
   pandas \
   scipy \
   gmsh \
   jupytext \
-  pyvista \
+  pyvista==0.39.0 \
   pyvirtualdisplay \
   ipyvtklink \
-  jupyter_contrib_nbextensions \
   itkwidgets \
   ipywidgets==7.7 \
   pythreejs \
   ipyvtk-simple \
   panel \
-  jupyter-server \
-  jupyter \
-  'jupyterhub==3.1.1' \
-  jupyterhub-firstuseauthenticator && \
+  ipygany \
+  imageio
+
+RUN pip3 install \
+  jupyter_contrib_nbextensions && \
   jupyter contrib nbextension install --sys-prefix && \
-  jupyter nbextension install --py jupytext --sys-prefix && \
-  jupyter nbextension enable --py jupytext && \
-  jupyter nbextension install --py pythreejs --sys-prefix && \
-  jupyter nbextension enable --py pythreejs && \
-  npm install -g configurable-http-proxy
+  jupyter nbextension install https://raw.githubusercontent.com/mwouts/jupytext_nbextension/master/jupytext.js --sys-prefix && \
+  jupyter nbextension enable jupytext --sys-prefix && \
+  # jupyter nbextension enable equation-numbering/main --sys-prefix && \
+  # jupyter nbextension enable splitcell/splitcell --sys-prefix && \
+  jupyter nbextension enable spellchecker/main --sys-prefix && \
+  jupyter nbextension enable collapsible_headings/main --sys-prefix && \
+  # jupyter nbextension enable codefolding/main --sys-prefix && \
+  # jupyter nbextension enable codefolding/edit --sys-prefix && \
+  jupyter nbextension enable execute_time/ExecuteTime --sys-prefix 
 
 # allow jupyterlab for ipyvtk
 ENV DISPLAY=:99.0
@@ -131,6 +167,11 @@ ADD jupyterhub $JUPYTER_HOME_DIR
 
 WORKDIR $INSTALL_DIR
 
+RUN apt-get update && \
+  apt-get install -y \
+  sudo && \
+  rm -rf /var/lib/apt/lists/*
+
 RUN useradd admin \
   -m -d $JUPYTER_HOME_DIR/admin \
   -k $JUPYTER_HOME_DIR/skel/ \
@@ -140,5 +181,10 @@ RUN useradd admin \
 # Copy static styles for JupyterHub
 RUN cp $JUPYTER_HOME_DIR/css/* /usr/local/share/jupyterhub/static/css
 
+RUN mkdir -p /usr/local/share/jupyterhub/static/css && \
+  cp $JUPYTER_HOME_DIR/css/* /usr/local/share/jupyterhub/static/css
+
+# CMD ["/bin/bash", "-c", "jupyterhub -f ${JUPYTER_HOME_DIR}/jupyterhub_config.py"]
+
 EXPOSE 8000
-CMD ["/bin/bash", "-c", "jupyterhub -f ${JUPYTER_HOME_DIR}/jupyterhub_config.py"]
+CMD ["/bin/bash", "-c", "service ssh start; jupyterhub -f ${JUPYTER_HOME_DIR}/jupyterhub_config.py"]
