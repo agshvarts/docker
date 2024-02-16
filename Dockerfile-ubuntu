@@ -48,6 +48,7 @@ python \
 python-dev \
 python3-distutils \
 libx11-dev \
+x11-apps \
 xauth \
 xterm \
 unzip \
@@ -80,8 +81,10 @@ WORKDIR $INSTALL_DIR
 
 RUN useradd admin \
   -m -d /container/admin \
-  -p "$(openssl passwd -1 ubuntu)" && \
+  -p paN8aiEIonqJE && \
   usermod -aG sudo admin
+
+RUN echo "X11UseLocalhost no" >> /etc/ssh/sshd_config
 
 EXPOSE 22
 CMD ["/usr/sbin/sshd", "-D"]

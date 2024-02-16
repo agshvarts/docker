@@ -48,6 +48,7 @@ python \
 python-dev \
 python3-distutils \
 libx11-dev \
+x11-apps \
 xauth \
 xterm \
 unzip \
@@ -93,34 +94,6 @@ RUN apt-get update && \
 
 RUN ln -s `which pip3.8` /usr/bin/pip3.8
 
-# RUN pip3 -q install pip --upgrade && \
-#   pip3 install notebook 
-
-# RUN pip3 install \
-#   pandas \
-#   scipy \
-#   gmsh \
-#   jupytext \
-#   pyvista \
-#   pyvirtualdisplay \
-#   ipyvtklink \
-#   jupyter_contrib_nbextensions \
-#   itkwidgets \
-#   ipywidgets==7.7 \
-#   pythreejs \
-#   ipyvtk-simple \
-#   panel \
-#   jupyter-server \
-#   jupyter \
-#   'jupyterhub==3.1.1' \
-#   jupyterhub-firstuseauthenticator && \
-#   jupyter contrib nbextension install --sys-prefix && \
-#   jupyter nbextension install --py jupytext --sys-prefix && \
-#   jupyter nbextension enable --py jupytext && \
-#   jupyter nbextension install --py pythreejs --sys-prefix && \
-#   jupyter nbextension enable --py pythreejs && \
-#   npm install -g configurable-http-proxy
-
 RUN pip3 -q install pip --upgrade && \
   pip3 install \
   notebook==6.4.12 \
@@ -149,12 +122,8 @@ RUN pip3 install \
   jupyter contrib nbextension install --sys-prefix && \
   jupyter nbextension install https://raw.githubusercontent.com/mwouts/jupytext_nbextension/master/jupytext.js --sys-prefix && \
   jupyter nbextension enable jupytext --sys-prefix && \
-  # jupyter nbextension enable equation-numbering/main --sys-prefix && \
-  # jupyter nbextension enable splitcell/splitcell --sys-prefix && \
   jupyter nbextension enable spellchecker/main --sys-prefix && \
   jupyter nbextension enable collapsible_headings/main --sys-prefix && \
-  # jupyter nbextension enable codefolding/main --sys-prefix && \
-  # jupyter nbextension enable codefolding/edit --sys-prefix && \
   jupyter nbextension enable execute_time/ExecuteTime --sys-prefix 
 
 # allow jupyterlab for ipyvtk
@@ -184,7 +153,7 @@ RUN cp $JUPYTER_HOME_DIR/css/* /usr/local/share/jupyterhub/static/css
 RUN mkdir -p /usr/local/share/jupyterhub/static/css && \
   cp $JUPYTER_HOME_DIR/css/* /usr/local/share/jupyterhub/static/css
 
-# CMD ["/bin/bash", "-c", "jupyterhub -f ${JUPYTER_HOME_DIR}/jupyterhub_config.py"]
+RUN echo "X11UseLocalhost no" >> /etc/ssh/sshd_config
 
 EXPOSE 8000
 CMD ["/bin/bash", "-c", "service ssh start; jupyterhub -f ${JUPYTER_HOME_DIR}/jupyterhub_config.py"]
